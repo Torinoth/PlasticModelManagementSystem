@@ -1,8 +1,80 @@
 from rest_framework import serializers
-from .models import Product
+from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class MakerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Product
-        fields = ['purchase_date', 'product_name', 'price', 'creation_status']
+        model = Maker
+        fields = ['id', 'name', 'image', 'description']
+
+
+class BrandSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Brand
+        fields = ['id', 'name', 'image', 'maker', 'description']
+
+
+class ScaleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Scale
+        fields = ['id', 'size', 'description']
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['id', 'name']
+
+
+class KitSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        write_only=True,
+        required=False,
+    )
+    maker_name = serializers.CharField(source='maker.name', read_only=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    scale_size = serializers.CharField(source='scale.size', read_only=True)
+
+    class Meta:
+        model = Kit
+        fields = [
+            'id', 'name',
+            'maker', 'maker_name',
+            'brand', 'brand_name',
+            'scale', 'scale_size',
+            'price', 'image', 'description',
+            'tags', 'tag_ids',
+        ]
+
+    def validate(self, data):
+        brand = data.get('brand') or getattr(self.instance, 'brand', None)
+        maker = data.get('maker') or getattr(self.instance, 'maker', None)
+        if brand and maker and brand.maker_id != maker.pk:
+            raise serializers.ValidationError(
+                {'brand': '選択したブランドは指定メーカーに属していません。'}
+            )
+        return data
+
+    def create(self, validated_data):
+        tag_objs = validated_data.pop('tag_ids', [])
+        kit = Kit.objects.create(**validated_data)
+        kit.tags.set(tag_objs)
+        return kit
+
+    def update(self, instance, validated_data):
+        tag_objs = validated_data.pop('tag_ids', None)
+        instance = super().update(instance, validated_data)
+        if tag_objs is not None:
+            instance.tags.set(tag_objs)
+        return instance
+
+
+class CreationStatusSerializer(serializers.ModelSerializer):
+    get_date = serializers.DateField(required=False)
+
+    class Meta:
+        model = CreationStatus
+        fields = ['id', 'kit', 'get_date', 'status', 'description']
