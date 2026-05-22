@@ -1,13 +1,9 @@
 from django.contrib import admin
-from .models import *
-
-
-# class ProductAdmin(admin.ModelAdmin):
-#     list_display = ('product_name', 'purchase_date', 'price', 'creation_status')
-
+from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus
 
 admin.site.register(Maker)
 admin.site.register(Brand)
 admin.site.register(Scale)
-admin.site.register(Product)
+admin.site.register(Tag)
+admin.site.register(Kit)
 admin.site.register(CreationStatus)
