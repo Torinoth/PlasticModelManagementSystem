@@ -41,8 +41,9 @@ class KitViewSet(viewsets.ModelViewSet):
         queryset = Kit.objects.select_related('maker', 'brand', 'scale').prefetch_related('tags')
         tags_param = self.request.query_params.get('tags')
         if tags_param:
-            tag_names = [t.strip() for t in tags_param.split(',') if t.strip()]
-            queryset = queryset.filter(tags__name__in=tag_names).distinct()
+            tag_ids = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
+            if tag_ids:
+                queryset = queryset.filter(tags__id__in=tag_ids).distinct()
         return queryset
 
 

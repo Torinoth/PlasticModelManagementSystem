@@ -49,6 +49,15 @@ class KitSerializer(serializers.ModelSerializer):
             'tags', 'tag_ids',
         ]
 
+    def validate(self, data):
+        brand = data.get('brand') or getattr(self.instance, 'brand', None)
+        maker = data.get('maker') or getattr(self.instance, 'maker', None)
+        if brand and maker and brand.maker_id != maker.pk:
+            raise serializers.ValidationError(
+                {'brand': '選択したブランドは指定メーカーに属していません。'}
+            )
+        return data
+
     def create(self, validated_data):
         tag_objs = validated_data.pop('tag_ids', [])
         kit = Kit.objects.create(**validated_data)
