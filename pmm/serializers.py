@@ -34,7 +34,7 @@ class KitSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
     )
-    maker_name = serializers.CharField(source='maker.name', read_only=True)
+    maker_name = serializers.CharField(source='brand.maker.name', read_only=True)
     brand_name = serializers.CharField(source='brand.name', read_only=True)
     scale_size = serializers.CharField(source='scale.size', read_only=True)
 
@@ -42,21 +42,12 @@ class KitSerializer(serializers.ModelSerializer):
         model = Kit
         fields = [
             'id', 'name',
-            'maker', 'maker_name',
+            'maker_name',
             'brand', 'brand_name',
             'scale', 'scale_size',
             'price', 'image', 'description',
             'tags', 'tag_ids',
         ]
-
-    def validate(self, data):
-        brand = data.get('brand') or getattr(self.instance, 'brand', None)
-        maker = data.get('maker') or getattr(self.instance, 'maker', None)
-        if brand and maker and brand.maker_id != maker.pk:
-            raise serializers.ValidationError(
-                {'brand': '選択したブランドは指定メーカーに属していません。'}
-            )
-        return data
 
     def create(self, validated_data):
         tag_objs = validated_data.pop('tag_ids', [])
@@ -74,7 +65,8 @@ class KitSerializer(serializers.ModelSerializer):
 
 class CreationStatusSerializer(serializers.ModelSerializer):
     get_date = serializers.DateField(required=False)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = CreationStatus
-        fields = ['id', 'kit', 'get_date', 'status', 'description']
+        fields = ['id', 'kit', 'get_date', 'status', 'status_display', 'description']

@@ -38,7 +38,6 @@ class Tag(models.Model):
 
 class Kit(models.Model):
     name = models.CharField(verbose_name="name", max_length=100)
-    maker = models.ForeignKey(Maker, verbose_name="maker", on_delete=models.CASCADE)
     brand = models.ForeignKey(Brand, verbose_name="brand", on_delete=models.CASCADE)
     scale = models.ForeignKey(Scale, verbose_name="scale", on_delete=models.CASCADE)
     price = models.DecimalField(verbose_name="price", max_digits=8, decimal_places=0)
@@ -51,9 +50,20 @@ class Kit(models.Model):
 
 
 class CreationStatus(models.Model):
+    class Status(models.TextChoices):
+        BACKLOG = 'backlog', '積み'
+        IN_PROGRESS = 'in_progress', '製作中'
+        COMPLETED = 'completed', '完成'
+        ON_HOLD = 'on_hold', '中断'
+
     kit = models.ForeignKey(Kit, verbose_name="kit", on_delete=models.CASCADE)
     get_date = models.DateField(verbose_name="get_date", default=timezone.localdate)
-    status = models.CharField(verbose_name="status", max_length=100)
+    status = models.CharField(
+        verbose_name="status",
+        max_length=20,
+        choices=Status.choices,
+        default=Status.BACKLOG,
+    )
     description = models.TextField(verbose_name="Description", null=True, blank=True)
 
     def __str__(self):
