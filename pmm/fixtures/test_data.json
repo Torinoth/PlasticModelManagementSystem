@@ -1,0 +1,106 @@
+[
+  {"model": "pmm.maker", "pk": 10, "fields": {"name": "バンダイ", "image": null, "description": "機動戦士ガンダムシリーズをはじめ、多彩なプラモデルを展開する国内最大手メーカー"}},
+  {"model": "pmm.maker", "pk": 11, "fields": {"name": "タミヤ", "image": null, "description": "ミリタリーモデルで世界的な評価を誇る静岡の老舗メーカー"}},
+  {"model": "pmm.maker", "pk": 12, "fields": {"name": "ハセガワ", "image": null, "description": "航空機・艦船モデルを得意とする静岡のメーカー"}},
+  {"model": "pmm.maker", "pk": 13, "fields": {"name": "フジミ", "image": null, "description": "車・艦船・飛行機など幅広いジャンルを手がけるメーカー"}},
+  {"model": "pmm.maker", "pk": 14, "fields": {"name": "アオシマ", "image": null, "description": "艦船・キャラクターもの・車など多彩なラインナップのメーカー"}},
+
+  {"model": "pmm.brand", "pk": 10, "fields": {"name": "HGUC", "image": null, "maker": 10, "description": "High Grade Universal Century。1/144スケールのガンダムシリーズ"}},
+  {"model": "pmm.brand", "pk": 11, "fields": {"name": "MG", "image": null, "maker": 10, "description": "Master Grade。1/100スケールで内部フレームまで再現したシリーズ"}},
+  {"model": "pmm.brand", "pk": 12, "fields": {"name": "RG", "image": null, "maker": 10, "description": "Real Grade。1/144スケールながらMG並みの精密さを持つシリーズ"}},
+  {"model": "pmm.brand", "pk": 13, "fields": {"name": "1/35 MM", "image": null, "maker": 11, "description": "タミヤのミリタリーミニチュアシリーズ。戦車・兵士・車両など"}},
+  {"model": "pmm.brand", "pk": 14, "fields": {"name": "飛行機", "image": null, "maker": 12, "description": "ハセガワの航空機プラモデルシリーズ"}},
+
+  {"model": "pmm.scale", "pk": 10, "fields": {"size": "1/144", "description": "ガンダム HGシリーズなどで標準的な縮尺"}},
+  {"model": "pmm.scale", "pk": 11, "fields": {"size": "1/100", "description": "ガンダム MGシリーズで使われる縮尺"}},
+  {"model": "pmm.scale", "pk": 12, "fields": {"size": "1/35", "description": "タミヤMMシリーズなど戦車モデルで定番の縮尺"}},
+  {"model": "pmm.scale", "pk": 13, "fields": {"size": "1/72", "description": "航空機モデルで最も一般的な縮尺"}},
+
+  {"model": "pmm.tag", "pk": 10, "fields": {"name": "ガンダム"}},
+  {"model": "pmm.tag", "pk": 11, "fields": {"name": "戦車"}},
+  {"model": "pmm.tag", "pk": 12, "fields": {"name": "飛行機"}},
+  {"model": "pmm.tag", "pk": 13, "fields": {"name": "艦船"}},
+  {"model": "pmm.tag", "pk": 14, "fields": {"name": "キャラクター"}},
+
+  {"model": "pmm.kit", "pk": 10, "fields": {
+    "name": "HGUC 1/144 RX-78-2 ガンダム",
+    "brand": 10, "scale": 10,
+    "price": "1320", "image": null,
+    "description": "ガンダムの主役機。アムロ・レイが搭乗したホワイトベース所属のモビルスーツ。",
+    "tags": [10]
+  }},
+  {"model": "pmm.kit", "pk": 11, "fields": {
+    "name": "HGUC 1/144 MS-06S シャア専用ザクII",
+    "brand": 10, "scale": 10,
+    "price": "1320", "image": null,
+    "description": "赤い彗星シャア・アズナブルの専用機。通常の3倍の速度を誇る。",
+    "tags": [10]
+  }},
+  {"model": "pmm.kit", "pk": 12, "fields": {
+    "name": "MG 1/100 RX-93 νガンダム",
+    "brand": 11, "scale": 11,
+    "price": "6160", "image": null,
+    "description": "逆襲のシャアに登場するアムロ専用機。フィン・ファンネルを装備した最後のニュータイプ専用機。",
+    "tags": [10, 14]
+  }},
+  {"model": "pmm.kit", "pk": 13, "fields": {
+    "name": "RG 1/144 GAT-X105 ストライクガンダム",
+    "brand": 12, "scale": 10,
+    "price": "2200", "image": null,
+    "description": "機動戦士ガンダムSEEDに登場するキラ・ヤマトの搭乗機。多彩なストライカーパックに対応。",
+    "tags": [10]
+  }},
+  {"model": "pmm.kit", "pk": 14, "fields": {
+    "name": "1/35 ドイツ重戦車 タイガーI型 初期生産型",
+    "brand": 13, "scale": 12,
+    "price": "3300", "image": null,
+    "description": "第二次世界大戦中のドイツが誇る重戦車。88mm砲と重装甲で連合軍を圧倒した。",
+    "tags": [11]
+  }},
+  {"model": "pmm.kit", "pk": 15, "fields": {
+    "name": "1/35 アメリカ中戦車 M4A3E8 シャーマン イージーエイト",
+    "brand": 13, "scale": 12,
+    "price": "2750", "image": null,
+    "description": "第二次世界大戦末期に登場したM4シャーマンの改良型。水平懸架式サスペンションを採用。",
+    "tags": [11]
+  }},
+  {"model": "pmm.kit", "pk": 16, "fields": {
+    "name": "1/72 F-15J イーグル 航空自衛隊",
+    "brand": 14, "scale": 13,
+    "price": "1760", "image": null,
+    "description": "航空自衛隊が運用するF-15のライセンス生産型。優れた機動性と上昇力を誇る制空戦闘機。",
+    "tags": [12]
+  }},
+  {"model": "pmm.kit", "pk": 17, "fields": {
+    "name": "1/72 三菱 A6M5 零式艦上戦闘機 52型",
+    "brand": 14, "scale": 13,
+    "price": "1540", "image": null,
+    "description": "太平洋戦争中に活躍した大日本帝国海軍の傑作艦上戦闘機。軽量化と機動性を追求した設計。",
+    "tags": [12]
+  }},
+  {"model": "pmm.kit", "pk": 18, "fields": {
+    "name": "MG 1/100 MSN-06S シナンジュ",
+    "brand": 11, "scale": 11,
+    "price": "8250", "image": null,
+    "description": "機動戦士ガンダムUCに登場するフル・フロンタルの専用機。ネオ・ジオンの技術の粋を集めた高性能機。",
+    "tags": [10]
+  }},
+  {"model": "pmm.kit", "pk": 19, "fields": {
+    "name": "HGUC 1/144 AMX-004 キュベレイ",
+    "brand": 10, "scale": 10,
+    "price": "1650", "image": null,
+    "description": "機動戦士Zガンダムに登場するハマーン・カーンの専用機。ファンネルを使ったオールレンジ攻撃が特徴。",
+    "tags": [10, 14]
+  }},
+
+  {"model": "pmm.creationstatus", "pk": 10, "fields": {"kit": 10, "get_date": "2024-01-15", "status": "backlog", "description": null}},
+  {"model": "pmm.creationstatus", "pk": 11, "fields": {"kit": 11, "get_date": "2024-03-20", "status": "in_progress", "description": "サフ吹き完了、本塗装中"}},
+  {"model": "pmm.creationstatus", "pk": 12, "fields": {"kit": 12, "get_date": "2023-08-10", "status": "completed", "description": "スミ入れ・デカール・トップコートまで完成"}},
+  {"model": "pmm.creationstatus", "pk": 13, "fields": {"kit": 13, "get_date": "2024-06-01", "status": "on_hold", "description": "ストライカーパックの塗り分けが難しく一旦中断"}},
+  {"model": "pmm.creationstatus", "pk": 14, "fields": {"kit": 14, "get_date": "2024-02-14", "status": "backlog", "description": null}},
+  {"model": "pmm.creationstatus", "pk": 15, "fields": {"kit": 15, "get_date": "2024-04-05", "status": "in_progress", "description": "車体の組み立て完了、塗装準備中"}},
+  {"model": "pmm.creationstatus", "pk": 16, "fields": {"kit": 16, "get_date": "2023-11-03", "status": "completed", "description": "日の丸デカール貼り付け・クリアコート仕上げ済み"}},
+  {"model": "pmm.creationstatus", "pk": 17, "fields": {"kit": 17, "get_date": "2024-05-10", "status": "backlog", "description": null}},
+  {"model": "pmm.creationstatus", "pk": 18, "fields": {"kit": 18, "get_date": "2024-07-22", "status": "in_progress", "description": "ゴールドの塗装が難しい。メタリック系塗料を試している"}},
+  {"model": "pmm.creationstatus", "pk": 19, "fields": {"kit": 19, "get_date": "2024-09-30", "status": "backlog", "description": null}}
+]

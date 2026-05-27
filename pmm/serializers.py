@@ -40,6 +40,7 @@ class KitSerializer(serializers.ModelSerializer):
     brand_name = serializers.CharField(source='brand.name', read_only=True)
     scale_size = serializers.CharField(source='scale.size', read_only=True)
     image = serializers.ImageField(required=False, allow_null=True, use_url=False)
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Kit
@@ -50,25 +51,49 @@ class KitSerializer(serializers.ModelSerializer):
             'scale', 'scale_size',
             'price', 'image', 'description',
             'tags', 'tag_ids',
+            'status',
         ]
+
+    def get_status(self, obj):
+        cs = obj.creationstatus_set.order_by('-id').first()
+        return cs.status if cs else None
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         if instance.image:
-            rep['image'] = instance.image.url  # /media/kits/filename.jpg
+            rep['image'] = instance.image.url
         return rep
+
+    def to_internal_value(self, data):
+        result = super().to_internal_value(data)
+        status_value = data.get('status')
+        if status_value:
+            valid = [s[0] for s in CreationStatus.Status.choices]
+            if status_value in valid:
+                result['status'] = status_value
+        return result
 
     def create(self, validated_data):
         tag_objs = validated_data.pop('tag_ids', [])
+        status = validated_data.pop('status', CreationStatus.Status.BACKLOG)
         kit = Kit.objects.create(**validated_data)
         kit.tags.set(tag_objs)
+        CreationStatus.objects.create(kit=kit, status=status)
         return kit
 
     def update(self, instance, validated_data):
         tag_objs = validated_data.pop('tag_ids', None)
+        status = validated_data.pop('status', None)
         instance = super().update(instance, validated_data)
         if tag_objs is not None:
             instance.tags.set(tag_objs)
+        if status is not None:
+            cs = instance.creationstatus_set.order_by('-id').first()
+            if cs:
+                cs.status = status
+                cs.save()
+            else:
+                CreationStatus.objects.create(kit=instance, status=status)
         return instance
 
 

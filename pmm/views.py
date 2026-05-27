@@ -182,7 +182,7 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     pagination_class = KitPagination
 
     def get_queryset(self):
-        queryset = Kit.objects.select_related('brand__maker', 'brand', 'scale').prefetch_related('tags')
+        queryset = Kit.objects.select_related('brand__maker', 'brand', 'scale').prefetch_related('tags', 'creationstatus_set')
         tags_param = self.request.query_params.get('tags')
         if tags_param:
             tag_ids = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
