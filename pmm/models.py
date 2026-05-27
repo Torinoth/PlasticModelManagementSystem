@@ -41,7 +41,7 @@ class Kit(models.Model):
     brand = models.ForeignKey(Brand, verbose_name="brand", on_delete=models.CASCADE)
     scale = models.ForeignKey(Scale, verbose_name="scale", on_delete=models.CASCADE)
     price = models.DecimalField(verbose_name="price", max_digits=8, decimal_places=0)
-    image = models.CharField(verbose_name="image", max_length=255, null=True, blank=True)
+    image = models.ImageField(verbose_name="image", upload_to='kits/', null=True, blank=True)
     description = models.TextField(verbose_name="Description", null=True, blank=True)
     tags = models.ManyToManyField(Tag, verbose_name="tags", blank=True, related_name="kits")
 
@@ -55,6 +55,8 @@ class CreationStatus(models.Model):
         IN_PROGRESS = 'in_progress', '製作中'
         COMPLETED = 'completed', '完成'
         ON_HOLD = 'on_hold', '中断'
+        SOLD = 'sold', '売却済み'
+        PARTED_OUT = 'parted_out', '素材化'
 
     kit = models.ForeignKey(Kit, verbose_name="kit", on_delete=models.CASCADE)
     get_date = models.DateField(verbose_name="get_date", default=timezone.localdate)

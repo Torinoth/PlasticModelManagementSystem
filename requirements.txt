@@ -11,3 +11,4 @@ python-dotenv==1.2.2
 sqlparse==0.4.4
 types-PyYAML==6.0.12.20260408
 typing_extensions==4.15.0
+Pillow

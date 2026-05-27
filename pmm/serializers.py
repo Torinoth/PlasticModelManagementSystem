@@ -9,9 +9,11 @@ class MakerSerializer(serializers.ModelSerializer):
 
 
 class BrandSerializer(serializers.ModelSerializer):
+    maker_name = serializers.CharField(source='maker.name', read_only=True)
+
     class Meta:
         model = Brand
-        fields = ['id', 'name', 'image', 'maker', 'description']
+        fields = ['id', 'name', 'image', 'maker', 'maker_name', 'description']
 
 
 class ScaleSerializer(serializers.ModelSerializer):
@@ -37,6 +39,7 @@ class KitSerializer(serializers.ModelSerializer):
     maker_name = serializers.CharField(source='brand.maker.name', read_only=True)
     brand_name = serializers.CharField(source='brand.name', read_only=True)
     scale_size = serializers.CharField(source='scale.size', read_only=True)
+    image = serializers.ImageField(required=False, allow_null=True, use_url=False)
 
     class Meta:
         model = Kit
@@ -48,6 +51,12 @@ class KitSerializer(serializers.ModelSerializer):
             'price', 'image', 'description',
             'tags', 'tag_ids',
         ]
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        if instance.image:
+            rep['image'] = instance.image.url  # /media/kits/filename.jpg
+        return rep
 
     def create(self, validated_data):
         tag_objs = validated_data.pop('tag_ids', [])
