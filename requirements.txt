@@ -12,3 +12,4 @@ sqlparse==0.4.4
 types-PyYAML==6.0.12.20260408
 typing_extensions==4.15.0
 Pillow
+gunicorn==21.2.0

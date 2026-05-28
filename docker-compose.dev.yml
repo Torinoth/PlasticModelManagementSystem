@@ -1,0 +1,43 @@
+# 開発用 (Mac)
+# 使い方: docker compose -f docker-compose.dev.yml up -d
+# フロントエンドは pmm_vue/ で npm run dev を別途起動してください
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"   # ローカルから直接接続できるよう公開
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DEBUG: "True"
+    volumes:
+      - .:/app                    # ソースコードをマウントしてホットリロード
+      - ./media:/app/media        # メディアファイルはローカルに永続化
+    ports:
+      - "8000:8000"               # Vite の proxy ターゲット
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data_dev:

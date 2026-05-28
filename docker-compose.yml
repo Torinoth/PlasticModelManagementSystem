@@ -1,0 +1,68 @@
+# 本番用 (Raspberry Pi 4 / arm64)
+# 使い方: docker compose up -d
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - /mnt/ssd/pmm/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pmm_internal
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - /mnt/ssd/pmm/media:/app/media
+      - static_volume:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - pmm_internal
+
+  nginx:
+    build:
+      context: ../../vue/pmm_vue
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /mnt/ssd/pmm/media:/app/media:ro
+      - static_volume:/app/staticfiles:ro
+    depends_on:
+      - backend
+    networks:
+      - pmm_internal
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+    networks:
+      - pmm_internal
+
+volumes:
+  static_volume:
+
+networks:
+  pmm_internal:
+    driver: bridge
