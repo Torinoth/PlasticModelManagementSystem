@@ -67,6 +67,7 @@ class CreationStatus(models.Model):
         default=Status.BACKLOG,
     )
     description = models.TextField(verbose_name="Description", null=True, blank=True)
+    updated_at = models.DateTimeField(verbose_name="updated_at", auto_now=True)
 
     def __str__(self):
         return self.status

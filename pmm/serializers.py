@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus
 
@@ -41,6 +42,7 @@ class KitSerializer(serializers.ModelSerializer):
     scale_size = serializers.CharField(source='scale.size', read_only=True)
     image = serializers.ImageField(required=False, allow_null=True, use_url=False)
     status = serializers.SerializerMethodField()
+    days_since_updated = serializers.SerializerMethodField()
 
     class Meta:
         model = Kit
@@ -51,12 +53,23 @@ class KitSerializer(serializers.ModelSerializer):
             'scale', 'scale_size',
             'price', 'image', 'description',
             'tags', 'tag_ids',
-            'status',
+            'status', 'days_since_updated',
         ]
 
     def get_status(self, obj):
         cs = obj.creationstatus_set.order_by('-id').first()
         return cs.status if cs else None
+
+    def get_days_since_updated(self, obj):
+        inactive = {
+            CreationStatus.Status.COMPLETED,
+            CreationStatus.Status.SOLD,
+            CreationStatus.Status.PARTED_OUT,
+        }
+        cs = obj.creationstatus_set.order_by('-id').first()
+        if cs is None or cs.status in inactive or cs.updated_at is None:
+            return None
+        return (timezone.now().date() - cs.updated_at.date()).days
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
