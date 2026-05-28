@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -214,12 +214,23 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
             .values('id', 'name', 'kit_count')[:5]
         )
 
+        backlog_qs     = active.filter(creationstatus__status=s.BACKLOG).distinct()
+        in_progress_qs = active.filter(creationstatus__status=s.IN_PROGRESS).distinct()
+        completed_qs   = active.filter(creationstatus__status=s.COMPLETED).distinct()
+
+        def price_sum(qs):
+            return int(qs.aggregate(total=Sum('price'))['total'] or 0)
+
         return Response({
-            'total_kits': active.count(),
-            'backlog': active.filter(creationstatus__status=s.BACKLOG).distinct().count(),
-            'in_progress': active.filter(creationstatus__status=s.IN_PROGRESS).distinct().count(),
-            'completed': active.filter(creationstatus__status=s.COMPLETED).distinct().count(),
-            'tags_top': top_tags,
+            'total_kits':       active.count(),
+            'backlog':          backlog_qs.count(),
+            'in_progress':      in_progress_qs.count(),
+            'completed':        completed_qs.count(),
+            'total_price':      price_sum(active),
+            'backlog_price':    price_sum(backlog_qs),
+            'in_progress_price': price_sum(in_progress_qs),
+            'completed_price':  price_sum(completed_qs),
+            'tags_top':         top_tags,
         })
 
 
