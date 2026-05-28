@@ -1,7 +1,12 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q, Sum
+from django.db.models import (
+    Count, Q, Sum, F,
+    OuterRef, Subquery,
+    Case, When, DurationField, ExpressionWrapper,
+)
+from django.db.models.functions import Now
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -191,6 +196,32 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
         status_param = self.request.query_params.get('status')
         if status_param:
             queryset = queryset.filter(creationstatus__status=status_param).distinct()
+
+        ordering_param = self.request.query_params.get('ordering')
+        if ordering_param in ('days_since_updated', '-days_since_updated'):
+            inactive = [
+                CreationStatus.Status.COMPLETED,
+                CreationStatus.Status.SOLD,
+                CreationStatus.Status.PARTED_OUT,
+            ]
+            latest_cs = CreationStatus.objects.filter(kit=OuterRef('pk')).order_by('-id')
+            queryset = queryset.annotate(
+                _latest_status=Subquery(latest_cs.values('status')[:1]),
+                _latest_updated_at=Subquery(latest_cs.values('updated_at')[:1]),
+                _idle_duration=Case(
+                    When(_latest_status__in=inactive, then=None),
+                    default=ExpressionWrapper(
+                        Now() - F('_latest_updated_at'),
+                        output_field=DurationField(),
+                    ),
+                    output_field=DurationField(),
+                ),
+            )
+            if ordering_param == 'days_since_updated':
+                queryset = queryset.order_by(F('_idle_duration').asc(nulls_last=True))
+            else:
+                queryset = queryset.order_by(F('_idle_duration').desc(nulls_last=True))
+
         return queryset
 
     @action(detail=False, methods=['get'])
