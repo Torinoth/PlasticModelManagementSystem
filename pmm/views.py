@@ -413,6 +413,21 @@ def _apply_kit_filters(queryset, query_params):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def user_kit_detail_view(request, username, kit_id):
+    user = get_object_or_404(User, username=username, is_active=True)
+    kit = get_object_or_404(
+        Kit.objects
+        .select_related('brand__maker', 'brand', 'scale', 'owner')
+        .prefetch_related('tags', 'creationstatus_set'),
+        pk=kit_id,
+        owner=user,
+    )
+    serializer = KitSerializer(kit, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def user_kits_view(request, username):
     user = get_object_or_404(User, username=username, is_active=True)
     queryset = (
