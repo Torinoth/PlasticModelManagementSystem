@@ -53,6 +53,7 @@ def logout_view(request):
 def me_view(request):
     if request.user.is_authenticated:
         return Response({
+            'id': request.user.id,
             'username': request.user.username,
             'isAuthenticated': True,
             'isStaff': request.user.is_staff,
@@ -187,7 +188,13 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     pagination_class = KitPagination
 
     def get_queryset(self):
-        queryset = Kit.objects.select_related('brand__maker', 'brand', 'scale').prefetch_related('tags', 'creationstatus_set')
+        queryset = Kit.objects.select_related('brand__maker', 'brand', 'scale', 'owner').prefetch_related('tags', 'creationstatus_set')
+
+        if self.request.user.is_authenticated:
+            queryset = queryset.filter(owner=self.request.user)
+        else:
+            return queryset.none()
+
         tags_param = self.request.query_params.get('tags')
         if tags_param:
             tag_ids = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
@@ -224,6 +231,17 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def get_object(self):
+        obj = super().get_object()
+        if self.request.method not in ('GET', 'HEAD', 'OPTIONS'):
+            if obj.owner != self.request.user:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied('このキットを操作する権限がありません。')
+        return obj
+
     @action(detail=False, methods=['get'])
     def summary(self, request):
         s = CreationStatus.Status
@@ -235,11 +253,21 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
             .values_list('kit_id', flat=True)
             .distinct()
         )
-        active = Kit.objects.exclude(pk__in=excluded_ids)
+        if not request.user.is_authenticated:
+            return Response({
+                'total_kits': 0, 'backlog': 0, 'in_progress': 0, 'completed': 0,
+                'total_price': 0, 'backlog_price': 0, 'in_progress_price': 0, 'completed_price': 0,
+                'tags_top': [],
+            })
+
+        active = Kit.objects.exclude(pk__in=excluded_ids).filter(owner=request.user)
 
         top_tags = list(
             Tag.objects
-            .annotate(kit_count=Count('kits', filter=~Q(kits__id__in=excluded_ids)))
+            .annotate(kit_count=Count(
+                'kits',
+                filter=Q(kits__owner=request.user) & ~Q(kits__id__in=excluded_ids),
+            ))
             .filter(kit_count__gt=0)
             .order_by('-kit_count')
             .values('id', 'name', 'kit_count')[:5]

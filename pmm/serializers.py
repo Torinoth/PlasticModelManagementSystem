@@ -43,6 +43,7 @@ class KitSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True, use_url=False)
     status = serializers.SerializerMethodField()
     days_since_updated = serializers.SerializerMethodField()
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True, allow_null=True)
 
     class Meta:
         model = Kit
@@ -54,6 +55,7 @@ class KitSerializer(serializers.ModelSerializer):
             'price', 'image', 'description',
             'tags', 'tag_ids',
             'status', 'days_since_updated',
+            'owner_id',
         ]
 
     def get_status(self, obj):

@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 
@@ -44,6 +45,10 @@ class Kit(models.Model):
     image = models.ImageField(verbose_name="image", upload_to='kits/', null=True, blank=True)
     description = models.TextField(verbose_name="Description", null=True, blank=True)
     tags = models.ManyToManyField(Tag, verbose_name="tags", blank=True, related_name="kits")
+    owner = models.ForeignKey(
+        User, verbose_name="owner", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="kits",
+    )
 
     def __str__(self):
         return self.name
