@@ -54,6 +54,22 @@ class Kit(models.Model):
         return self.name
 
 
+class FavoriteMaker(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_makers')
+    maker = models.ForeignKey(Maker, on_delete=models.CASCADE, related_name='favorited_by')
+
+    class Meta:
+        unique_together = ('user', 'maker')
+
+
+class FavoriteBrand(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_brands')
+    brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name='favorited_by')
+
+    class Meta:
+        unique_together = ('user', 'brand')
+
+
 class CreationStatus(models.Model):
     class Status(models.TextChoices):
         BACKLOG = 'backlog', '積み'

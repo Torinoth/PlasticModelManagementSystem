@@ -1,20 +1,35 @@
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus
+from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand
 
 
 class MakerSerializer(serializers.ModelSerializer):
+    is_favorite = serializers.SerializerMethodField()
+
     class Meta:
         model = Maker
-        fields = ['id', 'name', 'image', 'description']
+        fields = ['id', 'name', 'image', 'description', 'is_favorite']
+
+    def get_is_favorite(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return FavoriteMaker.objects.filter(user=request.user, maker=obj).exists()
 
 
 class BrandSerializer(serializers.ModelSerializer):
     maker_name = serializers.CharField(source='maker.name', read_only=True)
+    is_favorite = serializers.SerializerMethodField()
 
     class Meta:
         model = Brand
-        fields = ['id', 'name', 'image', 'maker', 'maker_name', 'description']
+        fields = ['id', 'name', 'image', 'maker', 'maker_name', 'description', 'is_favorite']
+
+    def get_is_favorite(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return FavoriteBrand.objects.filter(user=request.user, brand=obj).exists()
 
 
 class ScaleSerializer(serializers.ModelSerializer):

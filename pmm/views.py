@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db.models import (
-    Count, Q, Sum, F,
+    Count, Q, Sum, F, Value, BooleanField,
     OuterRef, Subquery,
     Case, When, DurationField, ExpressionWrapper,
 )
@@ -13,7 +13,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus
+from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand
 from .serializers import (
     MakerSerializer, BrandSerializer, ScaleSerializer,
     TagSerializer, KitSerializer, CreationStatusSerializer,
@@ -167,10 +167,62 @@ class MakerViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Maker.objects.all()
     serializer_class = MakerSerializer
 
+    def get_queryset(self):
+        qs = Maker.objects.all()
+        if self.request.user.is_authenticated:
+            fav_ids = FavoriteMaker.objects.filter(
+                user=self.request.user
+            ).values_list('maker_id', flat=True)
+            qs = qs.annotate(
+                _is_fav=Case(
+                    When(id__in=fav_ids, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            ).order_by('-_is_fav', 'name')
+        else:
+            qs = qs.order_by('name')
+        return qs
+
+    @action(detail=True, methods=['post', 'delete'])
+    def favorite(self, request, pk=None):
+        maker = self.get_object()
+        if request.method == 'POST':
+            FavoriteMaker.objects.get_or_create(user=request.user, maker=maker)
+            return Response({'is_favorite': True})
+        FavoriteMaker.objects.filter(user=request.user, maker=maker).delete()
+        return Response({'is_favorite': False})
+
 
 class BrandViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
+
+    def get_queryset(self):
+        qs = Brand.objects.select_related('maker').all()
+        if self.request.user.is_authenticated:
+            fav_ids = FavoriteBrand.objects.filter(
+                user=self.request.user
+            ).values_list('brand_id', flat=True)
+            qs = qs.annotate(
+                _is_fav=Case(
+                    When(id__in=fav_ids, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            ).order_by('-_is_fav', 'name')
+        else:
+            qs = qs.order_by('name')
+        return qs
+
+    @action(detail=True, methods=['post', 'delete'])
+    def favorite(self, request, pk=None):
+        brand = self.get_object()
+        if request.method == 'POST':
+            FavoriteBrand.objects.get_or_create(user=request.user, brand=brand)
+            return Response({'is_favorite': True})
+        FavoriteBrand.objects.filter(user=request.user, brand=brand).delete()
+        return Response({'is_favorite': False})
 
 
 class ScaleViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
@@ -195,41 +247,7 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
         else:
             return queryset.none()
 
-        tags_param = self.request.query_params.get('tags')
-        if tags_param:
-            tag_ids = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
-            if tag_ids:
-                queryset = queryset.filter(tags__id__in=tag_ids).distinct()
-        status_param = self.request.query_params.get('status')
-        if status_param:
-            queryset = queryset.filter(creationstatus__status=status_param).distinct()
-
-        ordering_param = self.request.query_params.get('ordering')
-        if ordering_param in ('days_since_updated', '-days_since_updated'):
-            inactive = [
-                CreationStatus.Status.COMPLETED,
-                CreationStatus.Status.SOLD,
-                CreationStatus.Status.PARTED_OUT,
-            ]
-            latest_cs = CreationStatus.objects.filter(kit=OuterRef('pk')).order_by('-id')
-            queryset = queryset.annotate(
-                _latest_status=Subquery(latest_cs.values('status')[:1]),
-                _latest_updated_at=Subquery(latest_cs.values('updated_at')[:1]),
-                _idle_duration=Case(
-                    When(_latest_status__in=inactive, then=None),
-                    default=ExpressionWrapper(
-                        Now() - F('_latest_updated_at'),
-                        output_field=DurationField(),
-                    ),
-                    output_field=DurationField(),
-                ),
-            )
-            if ordering_param == 'days_since_updated':
-                queryset = queryset.order_by(F('_idle_duration').asc(nulls_last=True))
-            else:
-                queryset = queryset.order_by(F('_idle_duration').desc(nulls_last=True))
-
-        return queryset
+        return _apply_kit_filters(queryset, self.request.query_params)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -296,3 +314,108 @@ class KitViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
 class CreationStatusViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = CreationStatus.objects.all()
     serializer_class = CreationStatusSerializer
+
+
+def _apply_kit_filters(queryset, query_params):
+    """タグ・ステータス・放置日数ソートを queryset に適用して返す。"""
+    tags_param = query_params.get('tags')
+    if tags_param:
+        tag_ids = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
+        if tag_ids:
+            queryset = queryset.filter(tags__id__in=tag_ids).distinct()
+
+    status_param = query_params.get('status')
+    if status_param:
+        queryset = queryset.filter(creationstatus__status=status_param).distinct()
+
+    ordering_param = query_params.get('ordering')
+    if ordering_param in ('days_since_updated', '-days_since_updated'):
+        inactive = [
+            CreationStatus.Status.COMPLETED,
+            CreationStatus.Status.SOLD,
+            CreationStatus.Status.PARTED_OUT,
+        ]
+        latest_cs = CreationStatus.objects.filter(kit=OuterRef('pk')).order_by('-id')
+        queryset = queryset.annotate(
+            _latest_status=Subquery(latest_cs.values('status')[:1]),
+            _latest_updated_at=Subquery(latest_cs.values('updated_at')[:1]),
+            _idle_duration=Case(
+                When(_latest_status__in=inactive, then=None),
+                default=ExpressionWrapper(
+                    Now() - F('_latest_updated_at'),
+                    output_field=DurationField(),
+                ),
+                output_field=DurationField(),
+            ),
+        )
+        if ordering_param == 'days_since_updated':
+            queryset = queryset.order_by(F('_idle_duration').asc(nulls_last=True))
+        else:
+            queryset = queryset.order_by(F('_idle_duration').desc(nulls_last=True))
+
+    return queryset
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def user_kits_view(request, username):
+    user = get_object_or_404(User, username=username, is_active=True)
+    queryset = (
+        Kit.objects
+        .filter(owner=user)
+        .select_related('brand__maker', 'brand', 'scale', 'owner')
+        .prefetch_related('tags', 'creationstatus_set')
+    )
+    queryset = _apply_kit_filters(queryset, request.query_params)
+
+    paginator = KitPagination()
+    page = paginator.paginate_queryset(queryset, request)
+    serializer = KitSerializer(page, many=True, context={'request': request})
+    return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def user_summary_view(request, username):
+    user = get_object_or_404(User, username=username, is_active=True)
+    s = CreationStatus.Status
+    inactive = [s.SOLD, s.PARTED_OUT]
+
+    excluded_ids = (
+        CreationStatus.objects
+        .filter(status__in=inactive)
+        .values_list('kit_id', flat=True)
+        .distinct()
+    )
+    active = Kit.objects.filter(owner=user).exclude(pk__in=excluded_ids)
+
+    top_tags = list(
+        Tag.objects
+        .annotate(kit_count=Count(
+            'kits',
+            filter=Q(kits__owner=user) & ~Q(kits__id__in=excluded_ids),
+        ))
+        .filter(kit_count__gt=0)
+        .order_by('-kit_count')
+        .values('id', 'name', 'kit_count')[:5]
+    )
+
+    backlog_qs     = active.filter(creationstatus__status=s.BACKLOG).distinct()
+    in_progress_qs = active.filter(creationstatus__status=s.IN_PROGRESS).distinct()
+    completed_qs   = active.filter(creationstatus__status=s.COMPLETED).distinct()
+
+    def price_sum(qs):
+        return int(qs.aggregate(total=Sum('price'))['total'] or 0)
+
+    return Response({
+        'username':          username,
+        'total_kits':        active.count(),
+        'backlog':           backlog_qs.count(),
+        'in_progress':       in_progress_qs.count(),
+        'completed':         completed_qs.count(),
+        'total_price':       price_sum(active),
+        'backlog_price':     price_sum(backlog_qs),
+        'in_progress_price': price_sum(in_progress_qs),
+        'completed_price':   price_sum(completed_qs),
+        'tags_top':          top_tags,
+    })
