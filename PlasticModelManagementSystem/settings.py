@@ -133,6 +133,13 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'http://localhost:5173,http://127.0.0.1:5173',
 ).split(',')
 
+# ===== Email =====
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+EMAIL_FROM = os.getenv('EMAIL_FROM', 'noreply@sukonbu.xyz')
+DEFAULT_FROM_EMAIL = EMAIL_FROM
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],

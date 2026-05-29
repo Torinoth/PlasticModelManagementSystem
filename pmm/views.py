@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.db.models import (
     Count, Q, Sum, F, Value, BooleanField,
@@ -13,7 +15,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
-from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand
+from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand, EmailVerificationToken
 from .serializers import (
     MakerSerializer, BrandSerializer, ScaleSerializer,
     TagSerializer, KitSerializer, CreationStatusSerializer,
@@ -65,10 +67,11 @@ def me_view(request):
 @permission_classes([AllowAny])
 def register_view(request):
     username = request.data.get('username', '').strip()
+    email = request.data.get('email', '').strip()
     password = request.data.get('password', '').strip()
-    if not username or not password:
+    if not username or not email or not password:
         return Response(
-            {'detail': 'ユーザー名とパスワードは必須です。'},
+            {'detail': 'ユーザー名・メールアドレス・パスワードは必須です。'},
             status=status.HTTP_400_BAD_REQUEST,
         )
     if len(password) < 8:
@@ -81,11 +84,63 @@ def register_view(request):
             {'detail': 'このユーザー名は既に使用されています。'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    User.objects.create_user(username=username, password=password, is_active=False)
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {'detail': 'このメールアドレスは既に登録されています。'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user = User.objects.create_user(username=username, email=email, password=password, is_active=False)
+    token_obj = EmailVerificationToken.objects.create(user=user)
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token_obj.token}"
+    try:
+        send_mail(
+            subject='【すこん部員のなにがし】メールアドレスの確認',
+            message=(
+                f'{username} さん、ご登録ありがとうございます。\n\n'
+                f'以下のURLをクリックしてメールアドレスを認証してください。\n\n'
+                f'{verify_url}\n\n'
+                f'このメールに心当たりがない場合は無視してください。'
+            ),
+            from_email=settings.EMAIL_FROM,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception:
+        user.delete()
+        return Response(
+            {'detail': '認証メールの送信に失敗しました。しばらく時間をおいて再度お試しください。'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
     return Response(
-        {'detail': '登録申請を受け付けました。管理者の承認をお待ちください。'},
+        {'detail': '認証メールを送信しました。メールをご確認ください。'},
         status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def verify_email_view(request):
+    token_str = request.query_params.get('token', '').strip()
+    if not token_str:
+        return Response(
+            {'detail': 'トークンが指定されていません。'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        token_obj = EmailVerificationToken.objects.select_related('user').get(
+            token=token_str, is_used=False
+        )
+    except (EmailVerificationToken.DoesNotExist, ValueError):
+        return Response(
+            {'detail': '認証リンクが無効または期限切れです。'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user = token_obj.user
+    user.is_active = True
+    user.save()
+    token_obj.is_used = True
+    token_obj.save()
+    return Response({'detail': 'メールアドレスの認証が完了しました。ログインしてください。'})
 
 
 @api_view(['GET'])
