@@ -411,6 +411,8 @@ def _apply_kit_filters(queryset, query_params):
             queryset = queryset.order_by(F('_idle_duration').asc(nulls_last=True))
         else:
             queryset = queryset.order_by(F('_idle_duration').desc(nulls_last=True))
+    else:
+        queryset = queryset.order_by('-id')
 
     return queryset
 
