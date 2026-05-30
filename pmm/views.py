@@ -12,7 +12,7 @@ from django.db.models.functions import Now
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand, EmailVerificationToken
@@ -215,6 +215,10 @@ class ReadAllowAnyMixin:
     def get_permissions(self):
         if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
             return [AllowAny()]
+        if getattr(self, 'action', None) == 'favorite':
+            return [IsAuthenticated()]
+        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+            return [IsAdminUser()]
         return [IsAuthenticated()]
 
 

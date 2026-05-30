@@ -3,12 +3,14 @@ from rest_framework import serializers
 from .models import Maker, Brand, Scale, Tag, Kit, CreationStatus, FavoriteMaker, FavoriteBrand
 
 
+
 class MakerSerializer(serializers.ModelSerializer):
     is_favorite = serializers.SerializerMethodField()
+    kit_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Maker
-        fields = ['id', 'name', 'image', 'description', 'is_favorite']
+        fields = ['id', 'name', 'image', 'description', 'is_favorite', 'kit_count']
 
     def get_is_favorite(self, obj):
         request = self.context.get('request')
@@ -16,14 +18,18 @@ class MakerSerializer(serializers.ModelSerializer):
             return False
         return FavoriteMaker.objects.filter(user=request.user, maker=obj).exists()
 
+    def get_kit_count(self, obj):
+        return Kit.objects.filter(brand__maker=obj).count()
+
 
 class BrandSerializer(serializers.ModelSerializer):
     maker_name = serializers.CharField(source='maker.name', read_only=True)
     is_favorite = serializers.SerializerMethodField()
+    kit_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Brand
-        fields = ['id', 'name', 'image', 'maker', 'maker_name', 'description', 'is_favorite']
+        fields = ['id', 'name', 'image', 'maker', 'maker_name', 'description', 'is_favorite', 'kit_count']
 
     def get_is_favorite(self, obj):
         request = self.context.get('request')
@@ -31,17 +37,30 @@ class BrandSerializer(serializers.ModelSerializer):
             return False
         return FavoriteBrand.objects.filter(user=request.user, brand=obj).exists()
 
+    def get_kit_count(self, obj):
+        return obj.kit_set.count()
+
 
 class ScaleSerializer(serializers.ModelSerializer):
+    kit_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Scale
-        fields = ['id', 'size', 'description']
+        fields = ['id', 'size', 'description', 'kit_count']
+
+    def get_kit_count(self, obj):
+        return obj.kit_set.count()
 
 
 class TagSerializer(serializers.ModelSerializer):
+    kit_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Tag
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'kit_count']
+
+    def get_kit_count(self, obj):
+        return obj.kits.count()
 
 
 class KitSerializer(serializers.ModelSerializer):
