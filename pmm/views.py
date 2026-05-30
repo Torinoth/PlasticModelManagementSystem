@@ -221,6 +221,7 @@ class ReadAllowAnyMixin:
 class MakerViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Maker.objects.all()
     serializer_class = MakerSerializer
+    pagination_class = None
 
     def get_queryset(self):
         qs = Maker.objects.all()
@@ -252,6 +253,7 @@ class MakerViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
 class BrandViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
+    pagination_class = None
 
     def get_queryset(self):
         qs = Brand.objects.select_related('maker').all()
@@ -283,10 +285,12 @@ class BrandViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
 class ScaleViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Scale.objects.all()
     serializer_class = ScaleSerializer
+    pagination_class = None
 
 
 class TagViewSet(ReadAllowAnyMixin, viewsets.ModelViewSet):
     queryset = Tag.objects.all()
+    pagination_class = None
     serializer_class = TagSerializer
 
 
