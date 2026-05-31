@@ -140,6 +140,9 @@ EMAIL_FROM = os.getenv('EMAIL_FROM', 'noreply@sukonbu.xyz')
 DEFAULT_FROM_EMAIL = EMAIL_FROM
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
+# ===== External API =====
+YAHOO_CLIENT_ID = os.getenv('YAHOO_CLIENT_ID', '')
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],

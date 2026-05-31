@@ -7,6 +7,7 @@ from pmm.views import (
     register_view, verify_email_view, users_view, approve_user_view,
     suspend_user_view, delete_user_view,
     user_kit_detail_view, user_kits_view, user_summary_view,
+    barcode_search_view,
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
     path('api/u/<str:username>/summary/', user_summary_view),
     path('api/u/<str:username>/kits/<int:kit_id>/', user_kit_detail_view),
     path('api/u/<str:username>/', user_kits_view),
+    path('api/search/barcode/', barcode_search_view),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

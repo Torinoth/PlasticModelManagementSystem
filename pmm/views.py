@@ -1,3 +1,5 @@
+import requests as http_requests
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -498,4 +500,38 @@ def user_summary_view(request, username):
         'in_progress_price': price_sum(in_progress_qs),
         'completed_price':   price_sum(completed_qs),
         'tags_top':          top_tags,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def barcode_search_view(request):
+    jan = request.query_params.get('jan', '').strip()
+    if not jan:
+        return Response({'detail': 'JANコードを指定してください'}, status=status.HTTP_400_BAD_REQUEST)
+
+    client_id = settings.YAHOO_CLIENT_ID
+    if not client_id:
+        return Response({'detail': '外部API設定が未構成です'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    try:
+        resp = http_requests.get(
+            'https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch',
+            params={'appid': client_id, 'jan_code': jan, 'results': 1},
+            timeout=5,
+        )
+        data = resp.json()
+    except Exception:
+        return Response({'detail': '外部APIの呼び出しに失敗しました'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    hits = data.get('hits', [])
+    if not hits:
+        return Response({'detail': '商品が見つかりませんでした'}, status=status.HTTP_404_NOT_FOUND)
+
+    item = hits[0]
+    return Response({
+        'name': item.get('name', ''),
+        'price': item.get('price', 0),
+        'image_url': (item.get('image') or {}).get('medium', ''),
+        'maker': (item.get('brand') or {}).get('name', ''),
     })
