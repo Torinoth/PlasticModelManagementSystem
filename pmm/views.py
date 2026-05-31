@@ -94,7 +94,7 @@ def register_view(request):
     verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token_obj.token}"
     try:
         send_mail(
-            subject='【すこん部員のなにがし】メールアドレスの確認',
+            subject='【積みログ】メールアドレスの確認',
             message=(
                 f'{username} さん、ご登録ありがとうございます。\n\n'
                 f'以下のURLをクリックしてメールアドレスを認証してください。\n\n'
